@@ -1,0 +1,5 @@
+This repository contains org files related to the design and specification of a
+production server meant to run web hosting.  The whole design can be replicated
+for any given system, the goal is to achieve a framework for streamlining
+workflow for provisioning machines and in the long run maintain the cluster of
+VM/containers.
