@@ -1,0 +1,79 @@
+#+TITLE: Design and Implementation spec for production machine maintained by Servelots.
+#+OPTIONS: toc:3
+#+TOC: listings
+#+AUTHOR: Arvind Khadri
+#+EMAIL: arvind@servelots.com
+#+INFOJS_OPT: view:overview toc:t path:org-info.js mouse:underline
+#+KEYWORDS: design, implementation, spec, server, ansible, IT, automation, VM
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.cs" />
+
+* Introduction
+The purpose of this setup is to automate IT related tasks like bringing up a
+container for a client, and populating the container with required software and
+also to have separation of concerns amongst services running in a production
+machine meant for web hosting. The design is being drafted with being mindful
+about security.
+
+* Goal
+** To reduce the surface of attack visible to an attacker.
+*** ssh access
+    - All machines are accessible only via ssh key based protocol.
+    - Password based login is disabled.
+    - No *root* login allowed from public IP address.
+
+*** Minimize visible IP
+    - User's request handled by a router, which forwards request to concerned
+      application.
+    - Developers connect to ansible instance and perform required tasks.
+
+*** Block non standard ports
+    - All non standard ports of TCP/UDP must be blocked for both incoming and
+      outgoing traffic.
+    - Ports for services like ssh and mail are rate limited, i.e too many
+      requests from the same IP leading to fail authentication will lead to ban
+      of the user for a day(maybe?).
+    - Packages like fail2ban assist in rate limiting auth requests.
+*** No non standard file transfer
+    - ftp is known to be a trobulesome service. Websites which want users to
+      upload files, must provide an interface to upload and download the
+      files.
+
+*** Firewall
+    - Containers have a standard template of firewall, which is switched on as
+      soon as the machine is provisioned for use. Modifications to the firewall
+      rules can only be performed using ansible scripts.
+
+
+** To monitor the server for all activity and logs
+*** Nagios
+    - Nagios is a resource/activity monitoring tool for linux. A nagios client
+      is installed in every container provisioned.
+*** Email
+    - Mails are sent out to devOps on a daily basis about the health of the
+      machines.
+
+** To have regular backups of databases
+   - Regular database dumps can be automated using ansible.
+
+
+* Design
+
+#+CAPTION: High level design of production machine
+#+NAME: fig:1
+[[./hldps.jpg]]
+
+The network is divided into two parts
+- Private
+- Public
+
+** Public network
+   - Consists of a router and ansible instance.
+   - Router accepts traffic on port 80(tcp), 53(udp)
+   - Ansible accepts traffic from port 22(tcp)
+   - No direct login allowed from external network to the router.
+
+** Private network
+   - Contains a reverse proxy to forward requests from router to the correct
+     container.
+   - DNS server to forward request to internal IP.
+   - Nagios and mail server to monitor and report activity.
